@@ -11,6 +11,11 @@ module.exports = {
     ...sharedConfig,
     connection: { filename: './data/auth.db3' },
     seeds: { directory: './data/seeds' },
+    pool: {
+      afterCreate: (conn, done) => {
+        conn.run("PRAGMA foreign_keys = ON", done);
+      },
+    },
   },
   testing: {
     ...sharedConfig,

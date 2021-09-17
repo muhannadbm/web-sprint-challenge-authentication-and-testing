@@ -1,7 +1,19 @@
 const router = require('express').Router();
+const token_builder = require('./token-builder')
+const db = require('../../data/dbConfig')
+const bcrypt = require('bcryptjs')
 
-router.post('/register', (req, res) => {
-  res.end('implement register, please!');
+router.post('/register', async (req, res) => {
+  let myUser = req.body
+  if(!myUser.username || !myUser.password) return res.status(400).json("username and password required").end()
+  let potential_user = await db("users").where("username", req.body.username).first()
+  if(potential_user) return res.status(400).json("username taken").end()
+
+  let hashed = bcrypt.hashSync(req.body.password, 8)
+  myUser.password = hashed
+  let id = await db("users").insert(myUser)
+  let created = await db("users").where('id', id).first()
+  res.status(201).json(created)
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
@@ -29,8 +41,7 @@ router.post('/register', (req, res) => {
   */
 });
 
-router.post('/login', (req, res) => {
-  res.end('implement login, please!');
+router.post('/login', async(req, res) => {
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
@@ -54,6 +65,22 @@ router.post('/login', (req, res) => {
     4- On FAILED login due to `username` not existing in the db, or `password` being incorrect,
       the response body should include a string exactly as follows: "invalid credentials".
   */
+  let myUser = req.body
+  if(!myUser.username || !myUser.password) return res.status(400).json("username and password required").end()
+  let potential_user = await db("users").where("username", req.body.username).first()
+  // res.status(404).json(potential_user)
+  if(potential_user && bcrypt.compareSync(myUser.password, potential_user.password)){
+    let token = token_builder(myUser)
+    res.status(200).json({
+      message: `welcome, ${potential_user.username}`,
+      token: token
+    })
+  }
+  else{
+    res.status(404).json({message: "invalid credentials"})
+  }
+
+
 });
 
 module.exports = router;
